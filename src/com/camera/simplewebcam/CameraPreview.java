@@ -1,20 +1,36 @@
 package com.camera.simplewebcam;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.Date;
+
+import com.camera.simplewebcam.Main.takePicture;
+
 import android.content.Context;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.os.MessageQueue.IdleHandler;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 
-class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Runnable {
+public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Runnable {
 
 	private static final boolean DEBUG = true;
 	protected Context context;
 	private SurfaceHolder holder;
     Thread mainLoop = null;
 	private Bitmap bmp=null;
+	private Handler handler;
+	private takePicture buttonObject;
+	private final VideoHandler videoHandler = new VideoHandler(this); 
 
 	private boolean cameraExists=false;
 	private boolean shouldStop=false;
@@ -48,57 +64,133 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Runna
         System.loadLibrary("ImageProc");
     }
     
-	CameraPreview(Context context) {
-		super(context);
+    void setButtonObject(takePicture buttonObject)
+    {
+    	this.buttonObject = buttonObject;
+    }
+    
+    public CameraPreview(Context context, AttributeSet attributeset) {
+		super(context,attributeset);
 		this.context = context;
 		if(DEBUG) Log.d("WebCam","CameraPreview constructed");
 		setFocusable(true);
+		
 		
 		holder = getHolder();
 		holder.addCallback(this);
 		holder.setType(SurfaceHolder.SURFACE_TYPE_NORMAL);	
 	}
 	
+    
+    private class VideoHandler implements IdleHandler 
+    {
+    	
+    	CameraPreview mCp;
+    	
+    	public VideoHandler(CameraPreview cp) {
+    		mCp = cp;
+		}
+    	
+		@Override
+		public boolean queueIdle() {
+
+			/*
+			 * loop in the idle queue unless there are new messages
+			 */
+			while(true && cameraExists && !(handler.hasMessages(0))) {
+		        	Log.d("runnable","inside");
+		        	//obtaining display area to draw a large image
+		        	if(winWidth==0){
+		        		winWidth=mCp.getWidth();
+		        		winHeight=mCp.getHeight();
+
+		        		if(winWidth*3/4<=winHeight){
+		        			dw = 0;
+		        			dh = (winHeight-winWidth*3/4)/2;
+		        			rate = ((float)winWidth)/IMG_WIDTH;
+		        			rect = new Rect(dw,dh,dw+winWidth-1,dh+winWidth*3/4-1);
+		        		}else{
+		        			dw = (winWidth-winHeight*4/3)/2;
+		        			dh = 0;
+		        			rate = ((float)winHeight)/IMG_HEIGHT;
+		        			rect = new Rect(dw,dh,dw+winHeight*4/3 -1,dh+winHeight-1);
+		        		}
+		        	}
+		        	
+		        	// obtaining a camera image (pixel data are stored in an array in JNI).
+		        	processCamera();
+		        	// camera image to bmp
+		        	pixeltobmp(bmp);
+
+		            Canvas canvas = getHolder().lockCanvas();
+		            if (canvas != null)
+		            {
+		            	// draw camera bmp on canvas
+		            	canvas.drawBitmap(bmp,null,rect,null);
+
+		            	getHolder().unlockCanvasAndPost(canvas);
+		            }
+
+		            if(shouldStop){
+		            	shouldStop = false;  
+		            }	        
+		        }
+			 
+			return true;
+		}
+    }
+    
     @Override
     public void run() {
-        while (true && cameraExists) {
-        	//obtaining display area to draw a large image
-        	if(winWidth==0){
-        		winWidth=this.getWidth();
-        		winHeight=this.getHeight();
+    	
+	Looper.prepare();
+	
+	/*
+	 * currently every message will trigger saving an image
+	 */
+	 handler = new Handler() {
+            public void handleMessage(Message msg) {
 
-        		if(winWidth*3/4<=winHeight){
-        			dw = 0;
-        			dh = (winHeight-winWidth*3/4)/2;
-        			rate = ((float)winWidth)/IMG_WIDTH;
-        			rect = new Rect(dw,dh,dw+winWidth-1,dh+winWidth*3/4-1);
-        		}else{
-        			dw = (winWidth-winHeight*4/3)/2;
-        			dh = 0;
-        			rate = ((float)winHeight)/IMG_HEIGHT;
-        			rect = new Rect(dw,dh,dw+winHeight*4/3 -1,dh+winHeight-1);
-        		}
-        	}
-        	
-        	// obtaining a camera image (pixel data are stored in an array in JNI).
-        	processCamera();
-        	// camera image to bmp
-        	pixeltobmp(bmp);
-        	
-            Canvas canvas = getHolder().lockCanvas();
-            if (canvas != null)
-            {
-            	// draw camera bmp on canvas
-            	canvas.drawBitmap(bmp,null,rect,null);
-
-            	getHolder().unlockCanvasAndPost(canvas);
+            	if(cameraExists)
+            	{
+	        		Date date = new Date();
+	            	
+	        		File directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + File.separator + "simplewebcam");
+	        		directory.mkdirs();
+	            	String filename = directory.getAbsoluteFile() + File.separator + String.valueOf(date.getTime()) + ".jpg";
+	            	
+	            	try {
+	         	       FileOutputStream out = new FileOutputStream(filename);
+	         	       bmp.compress(Bitmap.CompressFormat.JPEG, 90, out);
+	         	       Toast.makeText(context,"Saved image: " + filename, Toast.LENGTH_SHORT).show();
+	         		} catch (Exception e) {
+	         		       e.printStackTrace();
+         		       Toast.makeText(context,"Failed to save image: " + filename, Toast.LENGTH_SHORT).show();
+	         		}
+	            	
+            	}
+            	else
+            	{
+            		Toast.makeText(context,"No Camera", Toast.LENGTH_LONG).show();
+            	}
             }
+        };
+        
+        /*
+         * add idle handler, this is where the video is processed
+         */
+        Looper.myQueue().addIdleHandler(new VideoHandler(this));
 
-            if(shouldStop){
-            	shouldStop = false;  
-            	break;
-            }	        
-        }
+        /*
+         * sent message with our handler to the image button
+         * so we can receive events like 'take a picture'
+         */
+		Message msg = buttonObject.getHandler().obtainMessage();
+		msg.arg1 = 1;
+		msg.obj = this.handler;
+		buttonObject.getHandler().sendMessage(msg);
+		
+		Looper.loop();
     }
 
 	@Override
