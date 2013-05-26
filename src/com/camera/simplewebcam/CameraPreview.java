@@ -3,6 +3,7 @@ package com.camera.simplewebcam;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Date;
+import java.util.concurrent.Semaphore;
 
 import com.camera.simplewebcam.Main.takePicture;
 
@@ -18,12 +19,17 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, Runnable {
 
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	protected Context context;
 	private SurfaceHolder holder;
     Thread mainLoop = null;
@@ -53,7 +59,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private Rect rect;
     private int dw, dh;
     private float rate;
-  
+    // for manipulation of original image
+	public Matrix mx = new Matrix();
+	// for rendering to canvas
+    private float scale_x, scale_y, pos_x;
+	private Matrix mx_canvas = new Matrix();
+
     // JNI functions
     public native int prepareCamera(int videoid);
     public native int prepareCameraWithBase(int videoid, int camerabase);
@@ -86,6 +97,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     {
     	
     	CameraPreview mCp;
+    	Matrix canvas_pos_scale = new Matrix(); 
     	
     	public VideoHandler(CameraPreview cp) {
     		mCp = cp;
@@ -97,44 +109,66 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 			/*
 			 * loop in the idle queue unless there are new messages
 			 */
-			while(true && cameraExists && !(handler.hasMessages(0))) {
-		        	Log.d("runnable","inside");
-		        	//obtaining display area to draw a large image
-		        	if(winWidth==0){
-		        		winWidth=mCp.getWidth();
-		        		winHeight=mCp.getHeight();
+			while(true && 
+				  (cameraExists || DEBUG)&& 
+				  !(handler.hasMessages(0))) 
+			{
+	        	//Log.d("runnable","inside");
+	        	//obtaining display area to draw a large image
+	        	if(winWidth==0)
+	        	{
+	        		winWidth=mCp.getWidth();
+	        		winHeight=mCp.getHeight();
 
-		        		if(winWidth*3/4<=winHeight){
-		        			dw = 0;
-		        			dh = (winHeight-winWidth*3/4)/2;
-		        			rate = ((float)winWidth)/IMG_WIDTH;
-		        			rect = new Rect(dw,dh,dw+winWidth-1,dh+winWidth*3/4-1);
-		        		}else{
-		        			dw = (winWidth-winHeight*4/3)/2;
-		        			dh = 0;
-		        			rate = ((float)winHeight)/IMG_HEIGHT;
-		        			rect = new Rect(dw,dh,dw+winHeight*4/3 -1,dh+winHeight-1);
-		        		}
-		        	}
-		        	
+	        		if(winWidth*3/4<=winHeight)
+	        		{
+	        			scale_x = ((float)(dw+winWidth-1)/(float)CameraPreview.IMG_WIDTH);
+	        			scale_y = ((float)(dh+winWidth*3/4-1)/(float)CameraPreview.IMG_HEIGHT);
+	        		}
+	        		else
+	        		{
+	        			scale_x = ((float)(dw+winHeight*4/3 -1)/(float)CameraPreview.IMG_WIDTH);
+	        			scale_y = ((float)(dh+winHeight-1)/(float)CameraPreview.IMG_HEIGHT);
+	        		}
+		        	canvas_pos_scale.setScale(scale_x, scale_y);
+	        	}
+	        	
+	        	if(DEBUG)
+	        	{
+	        		bmp = Bitmap.createBitmap(mCp.winWidth, mCp.winHeight,Config.ARGB_8888);
+	        	}
+	        	else
+	        	{
 		        	// obtaining a camera image (pixel data are stored in an array in JNI).
 		        	processCamera();
 		        	// camera image to bmp
-		        	pixeltobmp(bmp);
+		        	pixeltobmp(bmp);	        		
+	        	}
+	        	
+	            Canvas canvas = getHolder().lockCanvas();
+	            if (canvas != null)
+	            {
+	            	mx_canvas.reset();
+	            	// first apply flipping etc.
+	            	mx_canvas.postConcat(mx);
+	            	// second scale the image to fit the screen
+	            	mx_canvas.postConcat(canvas_pos_scale);
+	        		Log.d("canvas matrix",mx_canvas.toString());
 
-		            Canvas canvas = getHolder().lockCanvas();
-		            if (canvas != null)
-		            {
-		            	// draw camera bmp on canvas
-		            	canvas.drawBitmap(bmp,null,rect,null);
+	            	// draw camera bmp on canvas
+	            	canvas.drawBitmap(bmp, mx_canvas, null);
+	            	
+	            	getHolder().unlockCanvasAndPost(canvas);
+	            }
+	            else
+	            {
+	            	Log.e("idleQueue","Canvas empty");
+	            }
 
-		            	getHolder().unlockCanvasAndPost(canvas);
-		            }
-
-		            if(shouldStop){
-		            	shouldStop = false;  
-		            }	        
-		        }
+	            if(shouldStop){
+	            	shouldStop = false;  
+	            }	        
+	        }
 			 
 			return true;
 		}
