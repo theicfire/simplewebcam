@@ -133,21 +133,23 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 		        	canvas_pos_scale.setScale(scale_x, scale_y);
 	        	}
 	        	
-	        	if(DEBUG)
-	        	{
-	        		bmp = Bitmap.createBitmap(mCp.winWidth, mCp.winHeight,Config.ARGB_8888);
-	        	}
-	        	else
-	        	{
-		        	// obtaining a camera image (pixel data are stored in an array in JNI).
-		        	processCamera();
-		        	// camera image to bmp
-		        	pixeltobmp(bmp);	        		
-	        	}
 	        	
 	            Canvas canvas = getHolder().lockCanvas();
 	            if (canvas != null)
 	            {
+	            	
+		        	if(DEBUG)
+		        	{
+		        		bmp = Bitmap.createBitmap(mCp.winWidth, mCp.winHeight,Config.ARGB_8888);
+		        	}
+		        	else
+		        	{
+			        	// obtaining a camera image (pixel data are stored in an array in JNI).
+			        	processCamera();
+			        	// camera image to bmp
+			        	pixeltobmp(bmp);	        		
+		        	}
+	            	
 	            	mx_canvas.reset();
 	            	// first apply flipping etc.
 	            	mx_canvas.postConcat(mx);
