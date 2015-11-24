@@ -1,3 +1,6 @@
+# About
+Fork of https://bitbucket.org/droidperception/simplewebcam. This displays the video video of your usb webcam connected to your android device.
+
 # Requirements
 1) The kernel is V4L2 enabled... I think this is true since kitkat. You can compile your own kernel with:
 
