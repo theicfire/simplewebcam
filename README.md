@@ -25,7 +25,7 @@ Supported platform : Iconia Tab A500.
 
 # Compiling/Installing
 `<path-to-ndk>/ndk-build NDK_PROJECT_PATH=.`
-`<path-to-sdk>/tools/android update project --path . --target android-19`
+`(Optional, if you want a new build.xml and local.properties) <path-to-sdk>/tools/android update project --path . --target android-19`
 `ant debug`
 `~/Library/Android/sdk/platform-tools/adb install -r bin/Main-debug.apk`
 
