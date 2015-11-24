@@ -1,7 +1,4 @@
-Eclipse project for android to use USB Webcam.
-
-To run this application, the following conditions should be satisfied.
-
+# Requirements
 1) The kernel is V4L2 enabled... I think this is true since kitkat. You can compile your own kernel with:
 
  CONFIG_VIDEO_DEV=y
@@ -24,8 +21,11 @@ Supported platform : Iconia Tab A500.
 
  This application will also work on V4L2-enabled pandaboard and beagleboard.
 
-`~/Downloads/android-ndk-r10e/ndk-build NDK_PROJECT_PATH=.`
-`~/Library/Android/sdk/tools/android update project --path . --target android-19`
+4) `ant`, installed, ndk and sdk installed
+
+# Compiling/Installing
+`<path-to-ndk>/ndk-build NDK_PROJECT_PATH=.`
+`<path-to-sdk>/tools/android update project --path . --target android-19`
 `ant debug`
 `~/Library/Android/sdk/platform-tools/adb install -r bin/Main-debug.apk`
 
