@@ -27,10 +27,11 @@ Supported platform : Iconia Tab A500.
 4) `ant`, installed, ndk and sdk installed
 
 # Compiling/Installing
-`<path-to-ndk>/ndk-build NDK_PROJECT_PATH=.`
-`(Optional, if you want a new build.xml and local.properties) <path-to-sdk>/tools/android update project --path . --target android-19`
-`ant debug`
-`~/Library/Android/sdk/platform-tools/adb install -r bin/Main-debug.apk`
+	$ cd <project-location>
+	$ <path-to-ndk>/ndk-build NDK_PROJECT_PATH=.
+	$ <path-to-sdk>/tools/android update project --path . --target android-19 # Optional, if you want a new build.xml and local.properties
+	$ ant debug
+	$ ~/Library/Android/sdk/platform-tools/adb install -r bin/Main-debug.apk
 
 If this doesn't work, make sure you are reading from the correct video device. The code expects you're reading from `/dev/video4`. You may want to change this to `/dev/video0`. Check out the comments in `CameraPreview.java` for
 
