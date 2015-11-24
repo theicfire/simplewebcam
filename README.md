@@ -21,6 +21,7 @@ Fork of https://bitbucket.org/droidperception/simplewebcam. This displays the vi
 Supported platform : Iconia Tab A500.
 
 3) Your phone should be rooted. There's a command that runs `su -c \"chmod 666 <video_loc>\"`, so it needs root permissions. I have superSU installed to manage root permissions.
+   - Below android 4.4, you don't need root. You can use this patch: https://bitbucket.org/droidperception/simplewebcam/commits/415cd2b4a1a40a10f5e05a621e2ec494bb06d065
 
  This application will also work on V4L2-enabled pandaboard and beagleboard.
 
