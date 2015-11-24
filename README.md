@@ -2,7 +2,7 @@ Eclipse project for android to use USB Webcam.
 
 To run this application, the following conditions should be satisfied.
 
-1) The kernel is V4L2 enabled, e.g.,
+1) The kernel is V4L2 enabled... I think this is true since kitkat. You can compile your own kernel with:
 
  CONFIG_VIDEO_DEV=y
 
@@ -16,11 +16,20 @@ To run this application, the following conditions should be satisfied.
 
  CONFIG_USB_VIDEO_CLASS_INPUT_EVDEV=y
 
-2) The permission of /dev/video0 is set 0666 in /ueventd.xxxx.rc
-
-3) USB WebCam is UVC camera, and it supports 640x480 resolution with YUYV format.
+2) USB WebCam is UVC camera, and it supports 640x480 resolution with YUYV format. Tested with ELP-USBFHD01M-L21 (barebones webcam.. I think most should work).
 
 Supported platform : Iconia Tab A500.
 
+3) Your phone should be rooted. There's a command that runs `su -c \"chmod 666 <video_loc>\"`, so it needs root permissions. I have superSU installed to manage root permissions.
 
  This application will also work on V4L2-enabled pandaboard and beagleboard.
+
+`~/Downloads/android-ndk-r10e/ndk-build NDK_PROJECT_PATH=.`
+`~/Library/Android/sdk/tools/android update project --path . --target android-19`
+`ant debug`
+`~/Library/Android/sdk/platform-tools/adb install -r bin/Main-debug.apk`
+
+If this doesn't work, make sure you are reading from the correct video device. The code expects you're reading from `/dev/video4`. You may want to change this to `/dev/video0`. Check out the comments in `CameraPreview.java` for
+
+		private int cameraId=0;
+		private int cameraBase=4;
