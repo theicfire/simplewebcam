@@ -1,3 +1,6 @@
+# Deprecatedish
+Android Studio Version [here](https://github.com/theicfire/simplewebcam-studio).
+
 # About
 Fork of https://bitbucket.org/droidperception/simplewebcam. This displays the video video of your usb webcam connected to your android device.
 
